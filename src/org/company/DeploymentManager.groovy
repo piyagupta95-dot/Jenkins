@@ -1,7 +1,6 @@
 package org.company
 
 class DeploymentManager implements Serializable {
-    // The 'script' variable holds the Jenkins pipeline context
     def script
     String environment
 
@@ -12,45 +11,39 @@ class DeploymentManager implements Serializable {
     }
 
     void validate() {
-        script.echo "Starting validation for environment: ${this.environment}"
-        
-        switch (this.environment) {
-            case 'dev':
-                script.echo "DEV: Running fast smoke tests and syntax checks..."
-                break
-            case 'staging':
-                script.echo "STAGING: Running integration tests and performance benchmarks..."
-                break
-            case 'prod':
-                script.echo "PROD: Checking deployment freeze windows and final approvals..."
-                break
-            default:
-                script.error "Unknown environment: ${this.environment}. Cannot validate."
-        }
+        script.echo "Step 1: Validating configuration for the [${this.environment}] environment..."
     }
 
     void deploy() {
-        script.echo "Initiating deployment to ${this.environment}"
+        script.echo "Step 2: Deploying application to [${this.environment}]..."
         
-        // Simulating deployment logic
         if (this.environment == 'prod') {
-            script.echo "PROD: Executing zero-downtime blue/green deployment strategy."
-            // script.sh "kubectl apply -f k8s/prod/ -n production"
+            script.echo "PROD: Deploying new release to the 'Green' (idle) environment..."
+            script.echo "PROD: Running health checks on the 'Green' environment..."
+            script.echo "PROD: Success! Flipping load balancer traffic from 'Blue' to 'Green'."
         } else {
             script.echo "${this.environment.toUpperCase()}: Executing standard rolling update."
-            // script.sh "kubectl apply -f k8s/${this.environment}/ -n ${this.environment}"
         }
-        
-        script.echo "Deployment to ${this.environment} completed successfully."
     }
 
     void rollback() {
-        script.echo "ALERT: Rollback triggered for ${this.environment}!"
+        script.echo "ALERT: Deployment failed or rollback triggered for [${this.environment}]!"
         
         if (this.environment == 'prod') {
-            script.echo "PROD: Reverting traffic to previous stable cluster."
+            script.echo "--- INITIATING BLUE/GREEN ROLLBACK ---"
+            script.echo "PROD ROLLBACK: Re-routing all live traffic back to the 'Blue' (previous stable) environment."
+            
+            // Example of what the actual shell command might look like in Kubernetes:
+            // script.sh "kubectl patch service my-app-service -p '{\"spec\":{\"selector\":{\"version\":\"blue\"}}}' -n production"
+            
+            script.echo "PROD ROLLBACK: Traffic successfully restored to the stable 'Blue' version. Downtime avoided."
+            script.echo "--------------------------------------"
         } else {
-            script.echo "${this.environment.toUpperCase()}: Rolling back to the previous replica set."
+            // Dev and Staging usually don't pay for the duplicate infrastructure required for Blue/Green
+            script.echo "${this.environment.toUpperCase()} ROLLBACK: Executing standard rollback to previous replica set."
+            
+            // Example Kubernetes command for standard environments:
+            // script.sh "kubectl rollout undo deployment/my-app -n ${this.environment}"
         }
     }
 }
