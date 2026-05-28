@@ -1,11 +1,11 @@
 package org.company
 
 class DeploymentManager implements Serializable {
-    // The 'script' variable holds the Jenkins pipeline context
+    
     def script
     String environment
 
-    // Constructor with the pipeline context and environment parameter
+   
     DeploymentManager(def script, String environment) {
         this.script = script
         this.environment = environment.toLowerCase()
@@ -32,13 +32,13 @@ class DeploymentManager implements Serializable {
     void deploy() {
         script.echo "Initiating deployment to ${this.environment}"
         
-        // Simulating deployment logic
+       
         if (this.environment == 'prod') {
             script.echo "PROD: Executing zero-downtime blue/green deployment strategy."
-            // script.sh "kubectl apply -f k8s/prod/ -n production"
+          
         } else {
             script.echo "${this.environment.toUpperCase()}: Executing standard rolling update."
-            // script.sh "kubectl apply -f k8s/${this.environment}/ -n ${this.environment}"
+           
         }
         
         script.echo "Deployment to ${this.environment} completed successfully."
