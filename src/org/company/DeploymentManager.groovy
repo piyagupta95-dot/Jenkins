@@ -1,27 +1,38 @@
-package org.company
+@Library('company-deployment-lib') _
+import org.company.DeploymentManager
 
-class DeploymentManager implements Serializable {
-    def script
-    String environment
+def manager 
 
-    DeploymentManager(def script, String environment) {
-        this.script = script
-        this.environment = environment.toLowerCase()
+pipeline {
+    agent any // Changed back to 'any'
+
+    parameters {
+        choice(name: 'DEPLOY_ENV', choices: ['dev', 'staging', 'prod'], description: 'Select the target environment')
     }
 
-    void validate() {
-        script.echo "VALIDATE: Simulating Helm Linting for ${this.environment}..."
-    }
-
-    void deploy() {
-        if (this.environment == 'prod') {
-            script.echo "PROD: Executing Blue/Green Deployment strategy..."
-        } else {
-            script.echo "${this.environment.toUpperCase()}: Executing standard rolling update."
+    stages {
+        stage('Initialize') {
+            steps {
+                script { manager = new DeploymentManager(this, params.DEPLOY_ENV) }
+            }
         }
-    }
-
-    void rollback() {
-        script.echo "ROLLBACK: Reverting deployment for ${this.environment}."
+        stage('Validate') {
+            steps {
+                script { manager.validate() }
+            }
+        }
+        stage('Deploy') {
+            steps {
+                script {
+                    try {
+                        manager.deploy()
+                    } catch (Exception e) {
+                        echo "Deployment failed: ${e.message}"
+                        manager.rollback()
+                        currentBuild.result = 'FAILURE'
+                    }
+                }
+            }
+        }
     }
 }
