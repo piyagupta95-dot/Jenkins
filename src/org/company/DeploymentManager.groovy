@@ -25,7 +25,7 @@ class DeploymentManager implements Serializable {
                 this.appPort = "8081"
                 break
             case 'prod':
-                this.appPort = "80"
+                this.appPort = "8083"
                 break
             default:
                 this.script.error "❌ Unsupported target environment configuration: ${environment}"
