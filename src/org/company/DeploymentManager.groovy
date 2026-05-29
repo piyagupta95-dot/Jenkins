@@ -16,10 +16,10 @@ class DeploymentManager implements Serializable {
         this.imageName = "attendance-api"
         this.containerName = "attendance-service-${this.environment}"
         
-        // Isolate container exposure by environment ports
+        // Isolate container exposure by environment host ports
         switch(this.environment) {
             case 'dev':
-                this.appPort = "8080"
+                this.appPort = "8082" // Changed from 8080 to avoid Jenkins host port collision
                 break
             case 'staging':
                 this.appPort = "8081"
@@ -50,11 +50,11 @@ class DeploymentManager implements Serializable {
             // Wipe pre-existing infrastructure blocks to avoid state or port collisions
             cleanContainers()
 
-            // Run application matching target network parameters
+            // Run application matching target network parameters (Container port fixed to 8081)
             script.sh """
                 docker run -d \
                 --name ${containerName} \
-                -p ${appPort}:8081:8080 \
+                -p ${appPort}:8081 \
                 --restart unless-stopped \
                 ${imageName}:${imageTag}
             """
@@ -79,23 +79,24 @@ class DeploymentManager implements Serializable {
             
             cleanContainers()
 
+            // All fallback options updated to point to container port 8081
             switch(environment) {
                 case 'dev':
                     script.echo "🔄 [DEV STRATEGY] Fast recovery. Restoring container execution from local cached development backup tag..."
                     script.sh """
-                        docker run -d --name ${containerName} -p ${appPort}:8080 ${imageName}:dev-backup || \
-                        docker run -d --name ${containerName} -p ${appPort}:8080 ${imageName}:latest
+                        docker run -d --name ${containerName} -p ${appPort}:8081 ${imageName}:dev-backup || \
+                        docker run -d --name ${containerName} -p ${appPort}:8081 ${imageName}:latest
                     """
                     break
 
                 case 'staging':
                     script.echo "🔄 [STAGING STRATEGY] Version tracking rollback. Reverting state to exact verified stable tag: ${fallbackTag}"
-                    script.sh "docker run -d --name ${containerName} -p ${appPort}:8080 ${imageName}:${fallbackTag}"
+                    script.sh "docker run -d --name ${containerName} -p ${appPort}:8081 ${imageName}:${fallbackTag}"
                     break
 
                 case 'prod':
                     script.echo "🚨 [PRODUCTION STRATEGY] Zero-Downtime production mitigation. Forcing rollout back to highly-vetted stable release baseline tag."
-                    script.sh "docker run -d --name ${containerName} -p ${appPort}:8080 ${imageName}:prod-stable"
+                    script.sh "docker run -d --name ${containerName} -p ${appPort}:8081 ${imageName}:prod-stable"
                     script.echo "📢 Production application infrastructure successfully stabilized."
                     break
             }
