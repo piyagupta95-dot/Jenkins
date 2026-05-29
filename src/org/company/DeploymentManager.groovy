@@ -54,7 +54,7 @@ class DeploymentManager implements Serializable {
             script.sh """
                 docker run -d \
                 --name ${containerName} \
-                -p ${appPort}:8080 \
+                -p ${appPort}:8081:8080 \
                 --restart unless-stopped \
                 ${imageName}:${imageTag}
             """
